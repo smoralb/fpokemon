@@ -368,6 +368,7 @@ const MAPS = {
       { x: 3.5, y: 6.5, sprite: 'BOY', script: 'gymTrainer1' },
       { x: 11.5, y: 3.5, sprite: 'BOY', script: 'gymTrainer2' },
       { x: 7.5, y: 1.5, sprite: 'BROCK', script: 'brock' },
+      { x: 9.5, y: 4.5, sprite: 'DOCTOR', cond: f => !f.brickBadge && !f.briceSeen, script: 'drBrice' },
     ],
   },
 
@@ -538,6 +539,7 @@ const MAPS = {
       { x: 3.5, y: 5.5, sprite: 'BOY', script: 'route4Trainer1' },
       { x: 9.5, y: 7.5, sprite: 'GIRL', script: 'route4Trainer2' },
       { x: 5.5, y: 1.5, sprite: 'SIGN', lines: ['RUTA 4', 'MONTE LUNA ← CIUDAD AZULONA →'] },
+      { x: 7.5, y: 8.5, sprite: 'RIVAL', cond: f => f.rivalBeaten && !f.rivalRoute4, script: 'rivalRoute4' },
     ],
   },
 
@@ -609,6 +611,7 @@ const MAPS = {
         lines: ['¿Has visitado ya el GIMNASIO?', '¡MISTY es muy fuerte!'] },
       { x: 6.5, y: 4.5, sprite: 'MOM', cond: f => !!f.crimeHouseRevealed,
         lines: ['Pasa, pasa.', 'Te preparo algo si tienes hambre.', '¿Cuándo fue la última vez', 'que comiste de verdad?'] },
+      { x: 4.5, y: 1.5, sprite: 'BOOKSHELF', script: 'jenkinsBookshelf' },
     ],
   },
 

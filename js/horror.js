@@ -51,6 +51,8 @@ const VISION_NARRATIONS = {
   route4:    ['PASILLO EXTERIOR (NORTE)', 'El suelo está mojado.', 'No llueve.'],
   cerulean:  ['ALA OESTE', 'Esta ala lleva meses cerrada.', 'Tres camas vacías.', 'La Dra. Marina trabajaba aquí.'],
   cerulean_gym: ['SALA DE HIDROTERAPIA', 'Las camillas tienen correas.', 'Las correas están rotas.'],
+  crimehouse: ['HABITACIÓN 12', 'Tres personas vivían aquí.', 'Uno de ellos conocía este pasillo.'],
+  route4: ['PASILLO EXTERIOR (NORTE)', 'El suelo está mojado.', 'No llueve dentro.', 'Nunca.'],
 };
 
 // Pool de frases turbias que sueltan NPCs normales.
@@ -65,6 +67,13 @@ const DARK_POOL = [
   ['Cuenta hasta diez si vuelven', 'las luces blancas.', 'A mí me funciona.'],
   ['Llevas aquí tres años.', 'Aunque tú creas que es un día.'],
   ['Nadie ha salido por esa puerta', 'desde que yo recuerde.'],
+  // nuevas
+  ['¿Sabes qué día es hoy?', '...', 'Ni yo.', 'Aquí los días no cuentan.'],
+  ['Tu madre firmó los papeles.', 'Eso es lo único que sé.', 'Los demás, no sé.'],
+  ['El niño de la cama 7', 'dejó de hablar hace semanas.', 'Antes hablaba de POKéMON también.'],
+  ['Hay una foto en tu mesilla.', 'Una persona y un niño pequeño.', 'El niño sonríe mucho.', '...¿Sigues sonriendo así?'],
+  ['¿Cuándo fue la última vez', 'que dormiste de verdad?', 'Aquí el sueño no cuenta.', 'Aquí todo es sueño.'],
+  ['Huele diferente hoy.', 'Como cuando cambian', 'la medicación.', '¿Notas algo raro?'],
 ];
 
 // Asaltos aleatorios (pool para cuando el jugador se mueve).
@@ -254,6 +263,48 @@ const SCRIPTED_ASSAULTS = [
       ['...', 'Eso es la primera vez', 'que lo dices.', 'Anota: conciencia emergente.'],
     ],
     sanity: [0, +2],
+  },
+  {
+    flag: 'assaultCharmander',
+    cond: f => f.charmanderSaved && !f.assaultCharmander,
+    maps: ['route3', 'mtmoon', 'route4'],
+    sprite: 'DOCTOR',
+    lines: ['Sujeto 9.', 'Hoy ha adoptado', 'un objeto del suelo.', 'Una figurita de plástico.', '¿LO SABES?'],
+    prompt: '¿LO SABES?',
+    opts: ['ES MI CHARMANDER', 'NO LO SÉ'],
+    replies: [
+      ['...', 'Está bien.', 'Puedes guardar tus cosas.', 'Nadie te las quitará.'],
+      ['El objeto es una figurita', 'de un lagarto naranja.', 'Anota: apego objetal.', 'Continuar observación.'],
+    ],
+    sanity: [+1, 0],
+  },
+  {
+    flag: 'assaultBulbasaur',
+    cond: f => f.bulbasaurGot && !f.assaultBulbasaur,
+    maps: ['cerulean', 'route4', 'cerulean_gym'],
+    sprite: 'PATIENT',
+    lines: ['Oye.', 'La chica del ala oeste', '¿te habló?', '¿QUÉ TE DIJO?'],
+    prompt: '¿QUÉ TE DIJO?',
+    opts: ['ME DIO ALGO', 'NADA'],
+    replies: [
+      ['...Una planta de plástico.', 'Ella siempre da cosas.', 'Es su manera de decir', 'que te ve.'],
+      ['...', 'Mentira piadosa.', 'Todos nos mentimos aquí.', 'Es lo que nos queda.'],
+    ],
+    sanity: [+1, -1],
+  },
+  {
+    flag: 'assaultRoute4',
+    cond: f => f.mistyDefeated && f.rivalRoute4 && !f.assaultRoute4,
+    maps: ['route4', 'cerulean', 'mtmoon'],
+    sprite: 'DOCTOR',
+    lines: ['Sesión 47.', 'El sujeto ha empezado', 'a preguntarse', 'si otros comparten', 'su ilusión.', '¿ES BUENA SEÑAL?'],
+    prompt: '¿ES BUENA SEÑAL?',
+    opts: ['SÍ', 'NO LO SÉ'],
+    replies: [
+      ['Quizás.', 'La conciencia compartida', 'es el primer paso.', 'O el último.', '...'],
+      ['Nos preguntamos lo mismo.', 'Llevamos tres años', 'sin saberlo.'],
+    ],
+    sanity: [+1, 0],
   },
   {
     flag: 'assaultFinal',

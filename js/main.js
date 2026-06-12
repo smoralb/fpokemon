@@ -866,6 +866,112 @@ const SCRIPTS = {
     });
   },
 
+  drBrice() {
+    Game.flags.briceSeen = true;
+    Horror.startVision(12);
+    AudioFX.sting();
+    Game.say([
+      'DR. BRICE: ...ROJO.',
+      'Soy el Dr. Brice.',
+      'Estuve a cargo de tu caso', 'durante dieciséis meses.',
+      '...', 'Pedí el traslado.',
+      'No pude seguir.', 'No era lo correcto',
+      'para ninguno de los dos.',
+      '...', 'Espero que alguien', 'te ayude a salir de esto.',
+      'Yo no pude.',
+      '...', 'Lo siento mucho, ROJO.',
+    ], () => {
+      Horror.endVision();
+      Game.flags.brickBadge && void 0; // Dr. Brice solo aparece una vez
+    });
+  },
+
+  jenkinsBookshelf() {
+    if (!Game.flags.jenkinsRead) {
+      Game.say([
+        'Una estantería vacía.',
+        'Casi vacía.',
+        'Hay un cuaderno escondido', 'detrás de los libros.',
+      ], () => {
+        Game.choose('¿LO LEES?', ['SÍ', 'NO'], i => {
+          if (i === 1) { Game.say(['Lo dejas donde estaba.']); return; }
+          Game.flags.jenkinsRead = true;
+          Horror.startVision(18);
+          AudioFX.sting();
+          Game.say([
+            '(Diario de Ana Jenkins.)',
+            '14 de marzo.',
+            '"Miguel lleva dos años', 'en el ala infantil."',
+            '"Esta semana no reconoció', 'mi cara."',
+            '"Dice que está en un pueblo', 'con su PIKACHU."',
+            '"...",',
+            '"No sé si eso es bueno', 'o es lo peor que puede pasar."',
+            '"¿Dónde estás tú, Miguel?", ',
+            '"¿Dónde está el niño', 'que solía leerme los cuentos?"',
+            '...',
+            'La última página está en blanco.',
+            'Guardas el cuaderno.', 'Las manos te tiemblan un poco.',
+          ], () => {
+            Horror.endVision();
+            Game.say([
+              '...', 'Miguel.',
+              'Un nombre que no habías', 'oído antes.',
+              'O quizás sí.', 'En sueños, quizás.',
+            ]);
+          });
+        });
+      });
+    } else {
+      Game.say([
+        'El cuaderno de Ana Jenkins.',
+        '"¿Dónde estás, Miguel?"',
+        '...', 'Cierras la estantería.',
+      ]);
+    }
+  },
+
+  rivalRoute4() {
+    if (Game.flags.rivalRoute4) return;
+    Game.say([
+      'AZUL: ...Oye.',
+      '¿Tú también ves esto?',
+      'El camino, los árboles...',
+      '¿Todo esto es real?',
+    ], () => {
+      Game.choose('¿ES REAL?', ['SÍ', 'CREO QUE NO'], i => {
+        Game.flags.rivalRoute4 = true;
+        if (i === 0) {
+          Game.say([
+            'AZUL: ...Claro.',
+            'Claro que sí.',
+            '...', 'Olvidalo.',
+            'La próxima vez que nos veamos', 'te ganaré. Te lo prometo.',
+            '...', 'Cuídate, ROJO.',
+          ]);
+        } else {
+          Horror.startVision(10);
+          AudioFX.sting();
+          Game.say([
+            'AZUL: ...',
+            'Yo tampoco.',
+            'Llevo semanas sin creerlo.',
+            'Hay un chico en mi ala', 'que dice lo mismo que tú.',
+            '...siempre habla de su EEVEE.',
+            '...', 'Se llama MARCOS.',
+            'Lleva tres años así.',
+            '...', 'A veces me pregunto', 'cuántos somos.',
+          ], () => {
+            Horror.endVision();
+            Game.say([
+              'AZUL desaparece entre los árboles.',
+              '...', 'No vuelves a verle', 'en mucho tiempo.',
+            ]);
+          });
+        }
+      });
+    });
+  },
+
   ceruleanBoy() {
     Game.flags.arrivedCerulean = true;
     Game.say(['¡Bienvenido a CIUDAD AZULONA!', '¡La ciudad del agua!',
