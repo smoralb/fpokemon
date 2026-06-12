@@ -697,6 +697,120 @@ const SCRIPTS = {
     });
   },
 
+  charmanderTrainer() {
+    if (Game.flags.charmanderSaved) return;
+    Game.say([
+      'MARIO: Yo lo dejé aquí.',
+      'Era demasiado débil.',
+      'Los fuertes sobreviven solos, ¿no?',
+      '...', '¿Por qué me miras así?',
+      'No lo miré antes de irme.',
+      'No quería ver si la llama', 'seguía encendida.',
+    ], () => {
+      Horror.startVision(6);
+      Game.say([
+        'Hay personas así.',
+        'Que se van sin mirar atrás.',
+        'Que dejan cosas encendidas', 'en la oscuridad.',
+        '...esperando.',
+      ], () => Horror.endVision());
+    });
+  },
+
+  charmanderRescue() {
+    if (Game.flags.charmanderSaved) return;
+    if (Game.party.length >= 6) {
+      Game.say(['CHARMANDER te mira.', 'La llama de su cola tiembla.', 'No tienes sitio en tu equipo.']); return;
+    }
+    Game.say([
+      'Un CHARMANDER solo.',
+      'Sentado en la hierba.',
+      'La llama de su cola', 'brilla débilmente.',
+      'Te mira sin moverse.',
+      'Lleva aquí mucho tiempo.', '¿Lo llevas contigo?',
+    ], () => {
+      Game.choose('¿LLEVAS AL CHARMANDER?', ['SÍ', 'NO'], i => {
+        if (i === 0) {
+          const ch = makeMon('CHARMANDER', 10);
+          Game.party.push(ch);
+          Game.flags.charmanderSaved = true;
+          AudioFX.cry('CHARMANDER');
+          AudioFX.heal();
+          Game.say([
+            '¡' + Game.playerName + ' recibió\nun CHARMANDER!',
+            'CHARMANDER: Char...',
+            'Por primera vez en mucho rato,', 'la llama arde con fuerza.',
+          ]);
+        } else {
+          Game.say([
+            'CHARMANDER baja la cabeza.',
+            'La llama apenas parpadea.',
+            '...', 'Sigue esperando.',
+          ]);
+        }
+      });
+    });
+  },
+
+  bulbasaurGirl() {
+    if (Game.flags.bulbasaurGot) return;
+    if (!Game.flags.mistyDefeated) {
+      Game.say([
+        'ANA: Este es mi BULBASAUR.',
+        'Lo cuido desde que era pequeño.',
+        'Busco a alguien que merezca', 'llevarlo con él.',
+        'Alguien que haya demostrado', 'ser un buen entrenador.',
+        '...Demuéstramelo primero.',
+        'El GIMNASIO está al norte.',
+      ]); return;
+    }
+    Game.say([
+      'ANA: Has derrotado a MISTY.',
+      'Eres lo que buscaba.',
+      'BULBASAUR lleva tiempo esperando', 'a alguien así.',
+      '...Demasiado tiempo, en realidad.',
+      '¿Te lo quedas?',
+    ], () => {
+      Game.choose('¿ACEPTAS AL BULBASAUR?', ['SÍ', 'NO'], i => {
+        if (i === 0) {
+          if (Game.party.length >= 6) {
+            Game.say(['ANA: ...Tu equipo está lleno.', 'Vuelve cuando tengas sitio.']); return;
+          }
+          const bul = makeMon('BULBASAUR', 12);
+          Game.party.push(bul);
+          Game.flags.bulbasaurGot = true;
+          AudioFX.cry('BULBASAUR');
+          AudioFX.heal();
+          Game.say([
+            '¡' + Game.playerName + ' recibió\nun BULBASAUR!',
+            'BULBASAUR: Bulba...',
+            'ANA: Cuídalo bien.',
+            '...Ha esperado mucho para', 'encontrar a alguien como tú.',
+          ], () => {
+            Horror.startVision(8);
+            Game.say([
+              'ANA: ¿Sabes cuánto tiempo', 'es demasiado tiempo esperando?',
+              '...', 'Tú lo sabes.',
+              'Llevas meses mirando', 'una pared blanca.',
+              'Esperando que alguien entre.', 'Esperando que alguien te vea.',
+              '...', 'Bulbasaur y tú', 'tenéis eso en común.',
+            ], () => Horror.endVision());
+          });
+        } else {
+          Game.say([
+            'ANA: ...De acuerdo.',
+            'BULBASAUR sigue aquí.',
+            'Como siempre.',
+          ]);
+        }
+      });
+    });
+  },
+
+  bulbasaurOffer() {
+    SCRIPTS.bulbasaurGirl();
+  },
+
   moonTrainer1() {
     if (Game.flags.mt1) { Game.say(['¡CLEFAIRY es muy difícil de capturar!', '¡Pero merece la pena!']); return; }
     Game.say(['¡Eh! ¿Buscas a CLEFAIRY?', '¡Primero tendrás que vérmelas conmigo!'], () => {

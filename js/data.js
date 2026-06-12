@@ -65,6 +65,10 @@ const MOVES = {
   SUPERSONIC:   { name: 'ULTRASÓNICO',   type: 'Normal',   pow: 0,  acc: 55,  pp: 20, effect: { stat: 'acc', delta: -2 } },
   LEECHLIFE:    { name: 'VAMPIPOLVO',    type: 'Bug',      pow: 20, acc: 100, pp: 15, drain: 0.5 },
   POISONGAS:    { name: 'GAS VENENO',    type: 'Poison',   pow: 0,  acc: 90,  pp: 40, effect: { status: 'PSN' } },
+  EMBER:        { name: 'ASCUAS',        type: 'Fire',     pow: 40, acc: 100, pp: 25, sec: { status: 'PSN', ch: 0.1 } },
+  SLASH:        { name: 'CUCHILLADA',    type: 'Normal',   pow: 70, acc: 100, pp: 20 },
+  LEECHSEED:    { name: 'DRENADORAS',    type: 'Grass',    pow: 0,  acc: 90,  pp: 10, effect: { stat: 'def', delta: -1 } },
+  VINEWHIP:     { name: 'LÁTIGO CEPA',   type: 'Grass',    pow: 45, acc: 100, pp: 25 },
 };
 
 // ---- Sprites 16x16: '.'=transparente, 0..3 = índice de paleta ----
@@ -899,6 +903,42 @@ PLANT: [
 '................',
 '................',
 ],
+CHARMANDER: [
+'................',
+'......333.......',
+'.....31113......',
+'....3111113.....',
+'....3121113.....',
+'....3111113.....',
+'....3311133.....',
+'...3311113......',
+'...3111113......',
+'...3111113......',
+'...3333333......',
+'....33.333......',
+'...333..333.....',
+'....33..33.2....',
+'........33.22...',
+'..........222...',
+],
+BULBASAUR: [
+'................',
+'......1.........',
+'.....111........',
+'....11111.......',
+'...1111111......',
+'..111111111.....',
+'.11121111111....',
+'.11111111111....',
+'.11111111111....',
+'.11131111111....',
+'.11111111111....',
+'..1111111111....',
+'...33333333.....',
+'..3111111113....',
+'..3311333133....',
+'...333333333....',
+],
 };
 
 // Convierte las cadenas a matrices de índices (-1 = transparente). Tolerante con anchos.
@@ -966,6 +1006,10 @@ const SPECIES = {
                learn: [[1,'SING'],[1,'TACKLE'],[9,'SWIFT']] },
   GOLDEEN:    { name: 'GOLDEEN',    types: ['Water'],             base: { hp: 45, atk: 67, def: 60, spe: 63, spc: 50 }, catch: 225, exp: 111,
                learn: [[1,'TACKLE'],[1,'HORNATTACK'],[19,'WATERGUN']] },
+  CHARMANDER: { name: 'CHARMANDER', types: ['Fire'],              base: { hp: 39, atk: 52, def: 43, spe: 65, spc: 50 }, catch: 45,  exp: 65,
+               learn: [[1,'SCRATCH'],[1,'GROWL'],[9,'EMBER'],[15,'LEER'],[22,'SLASH']] },
+  BULBASAUR:  { name: 'BULBASAUR',  types: ['Grass', 'Poison'],  base: { hp: 45, atk: 49, def: 49, spe: 45, spc: 65 }, catch: 45,  exp: 64,
+               learn: [[1,'TACKLE'],[1,'GROWL'],[7,'LEECHSEED'],[13,'VINEWHIP'],[22,'POISONPOWDER']] },
 };
 
 // ---- Objetos ----

@@ -457,6 +457,8 @@ const MAPS = {
       { x: 5.5, y: 9.5, sprite: 'GIRL', script: 'route3Trainer2' },
       { x: 7.5, y: 13.5, sprite: 'BOY', script: 'route3Trainer3' },
       { x: 3.5, y: 1.5, sprite: 'SIGN', lines: ['RUTA 3', 'CIUDAD PLATEADA → MONTE LUNA'] },
+      { x: 9.5, y: 16.5, sprite: 'BOY', script: 'charmanderTrainer', cond: f => !f.charmanderSaved },
+      { x: 10.5, y: 17.5, sprite: 'CHARMANDER', script: 'charmanderRescue', cond: f => !f.charmanderSaved },
     ],
   },
 
@@ -575,6 +577,8 @@ const MAPS = {
       { x: 12.5, y: 10.5, sprite: 'SIGN', lines: ['TIENDA POKéMON', 'Todo para tu aventura.'] },
       { x: 10.5, y: 4.5, sprite: 'BOY', script: 'ceruleanBoy' },
       { x: 10.5, y: 7.5, sprite: 'GIRL', script: 'ceruleanGirl' },
+      { x: 13.5, y: 4.5, sprite: 'GIRL', script: 'bulbasaurGirl', cond: f => !f.bulbasaurGot },
+      { x: 14.5, y: 5.5, sprite: 'BULBASAUR', script: 'bulbasaurOffer', cond: f => !f.bulbasaurGot },
     ],
   },
 
