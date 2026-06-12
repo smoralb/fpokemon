@@ -66,6 +66,21 @@ const Game = {
   visibleNpcs() {
     const list = MAPS[this.map].npcs.filter(n => !n.cond || n.cond(this.flags));
     if (typeof Horror !== 'undefined' && Horror.npc) list.push(Horror.npc);
+    if (this.flags.hasPikachu && this.state === 'world') {
+      const ox = Math.cos(this.ang + Math.PI / 2) * 0.65;
+      const oy = Math.sin(this.ang + Math.PI / 2) * 0.65;
+      list.push({ x: this.x + ox, y: this.y + oy, sprite: 'PIKACHU', _isPikachu: true });
+    }
+    // Grass sprites en hierba alta
+    for (let dy = -4; dy <= 4; dy++) {
+      for (let dx = -4; dx <= 4; dx++) {
+        const gx = (this.x | 0) + dx + 0.5;
+        const gy = (this.y | 0) + dy + 0.5;
+        if (tileAt(this.map, gx | 0, gy | 0) === ',') {
+          list.push({ x: gx, y: gy, sprite: 'GRASS' });
+        }
+      }
+    }
     return list;
   },
 
@@ -101,8 +116,8 @@ const Game = {
     this.party = []; this.box = [];
     this.bag = { POKEBALL: 0, POTION: 0, SUPERPOT: 0, PARCEL: 0, BADGE1: 0, BADGE2: 0 };
     this.money = 3000; this.flags = {};
-    this.map = 'home'; this.x = 7.5; this.y = 4.5; this.ang = Math.PI / 2;
-    this.respawn = { map: 'home', x: 7.5, y: 4.5, ang: Math.PI / 2 };
+    this.map = 'home'; this.x = 7.5; this.y = 4.5; this.ang = Math.PI;
+    this.respawn = { map: 'home', x: 7.5, y: 4.5, ang: Math.PI };
     this.state = 'world';
     Music.playForMap(this.map);
     const name = this.playerName || 'ROJO';
@@ -249,6 +264,7 @@ const Game = {
 
   warpTo(w) {
     const from = this.map;
+    this.prevMap = this.map;
     this.map = w.to; this.x = w.x; this.y = w.y;
     if (w.ang !== undefined) this.ang = w.ang;
     this.bumpCooldown = 0.4;
@@ -257,6 +273,12 @@ const Game = {
 
   _onMapEnter(map) {
     Music.playForMap(map);
+    if (map === 'hallway') {
+      Horror.startVision(9999);
+    }
+    if (map === 'pallet' && this.prevMap === 'hallway') {
+      Horror.endVision();
+    }
     if (map === 'crimehouse' && !this.flags.crimeHouseVisited) {
       this.flags.crimeHouseVisited = true;
       this._crimeTimer = 4.5;
@@ -327,6 +349,7 @@ const Game = {
     }
     if (best) {
       AudioFX.blip();
+      if (best._isPikachu) { SCRIPTS.talkPikachu(); return; }
       if (best.script) SCRIPTS[best.script]();
       else if (best.lines) this.say(Horror.twist(best));
       return;
@@ -1134,6 +1157,25 @@ const SCRIPTS = {
         }
       });
     });
+  },
+
+  talkPikachu() {
+    const v = (Game.flags.pikachuTalks || 0);
+    Game.flags.pikachuTalks = v + 1;
+    if (v > 2 && Math.random() < 0.15) {
+      Horror.startVision(8);
+      AudioFX.sting();
+      const dark = [
+        ['PIKACHU: ...', 'Qué bien que ya solo', 'estamos tú y yo.'],
+        ['PIKACHU: Pika...', 'Nunca me dejes.', 'Nunca. Pika.'],
+        ['PIKACHU: ...pi.', 'Llevas tres años', 'hablando conmigo.', 'Soy lo único real', 'que te queda.'],
+      ];
+      Game.say(dark[rnd(dark.length)], () => Horror.endVision());
+    } else {
+      const normal = ['¡Pika pika!', '¡Pi-KACHU!', 'Pika...', '¡Pika!', '¡PIKACHU!', 'Pi...ka.'];
+      AudioFX.cry('PIKACHU');
+      Game.say([normal[rnd(normal.length)]]);
+    }
   },
 
   sewersExit() {

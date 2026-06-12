@@ -37,6 +37,7 @@ const VISION_NAMES = {
   sewers_exit: 'SALIDA DE EMERGENCIA',
   palletneighbor: 'HABITACIÓN 7',
   cerulean_house: 'DESPACHO DEL DR. BRICE',
+  hallway: 'PASILLO DEL ALA INFANTIL',
 };
 
 const VISION_NARRATIONS = {
@@ -55,6 +56,7 @@ const VISION_NARRATIONS = {
   cerulean_gym: ['SALA DE HIDROTERAPIA', 'Las camillas tienen correas.', 'Las correas están rotas.'],
   crimehouse: ['HABITACIÓN 12', 'Tres personas vivían aquí.', 'Uno de ellos conocía este pasillo.'],
   route4: ['PASILLO EXTERIOR (NORTE)', 'El suelo está mojado.', 'No llueve dentro.', 'Nunca.'],
+  hallway: ['PASILLO DEL ALA INFANTIL', 'Ocho habitaciones.', 'Ocho niños.', 'Solo uno habla todavía.'],
 };
 
 // Pool de frases turbias que sueltan NPCs normales.

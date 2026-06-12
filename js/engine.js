@@ -62,11 +62,19 @@ const Engine = {
     const H2 = SCR_H >> 1;
 
     // Cielo / techo
-    const ceil = map.outdoor ? 0 : 2;
     for (let y = 0; y < H2; y++) {
-      let c = ceil;
-      if (map.outdoor && y > H2 - 10) c = 1; // banda de horizonte
-      buf.fill(c, y * SCR_W, (y + 1) * SCR_W);
+      let c;
+      if (map.outdoor) {
+        c = y > H2 - 10 ? 1 : 0;
+        buf.fill(c, y * SCR_W, (y + 1) * SCR_W);
+      } else {
+        // Techo interior: baldosas con líneas de cuadrícula
+        for (let x = 0; x < SCR_W; x++) {
+          const tx = x % 16, ty = y % 16;
+          c = (tx === 0 || ty === 0) ? 2 : (tx === 8 || ty === 8) ? 1 : 0;
+          buf[y * SCR_W + x] = c;
+        }
+      }
     }
 
     // Suelo (floorcasting)
