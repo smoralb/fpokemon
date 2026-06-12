@@ -232,7 +232,17 @@ const Game = {
   useDoor(tx, ty) {
     const w = MAPS[this.map].warps[tx + ',' + ty];
     if (!w) return;
-    if (w.locked) { this.say([w.locked]); return; }
+    if (w.locked) {
+      if (w.keyItem && (this.bag[w.keyItem] || 0) > 0) {
+        // llave en inventario: abrir
+        this.say(['Usas la ' + (ITEMS[w.keyItem] ? ITEMS[w.keyItem].name : 'LLAVE') + '.', '¡La puerta se abre!'], () => {
+          AudioFX.confirm();
+          this.warpTo(w);
+        });
+        return;
+      }
+      this.say([w.locked]); return;
+    }
     AudioFX.confirm();
     this.warpTo(w);
   },
@@ -398,9 +408,15 @@ const SCRIPTS = {
         Game.bag.PARCEL = 0;
         Game.flags.parcelDelivered = true;
         Game.bag.POKEBALL += 5;
+        Game.bag.PALLETKEY = 1;
         AudioFX.victory();
         Game.say(['OAK: Toma 5 POKÉ BALL como',
           'agradecimiento.',
+          'Ah, casi lo olvido...',
+          'La casa de al lado lleva', 'meses cerrada.',
+          'Era del Dr. Álvarez.', 'Ya no trabaja aquí.',
+          'Guarda la llave por si acaso.',
+          '¡ROJO recibió la LLAVE CASA!',
           '¡Sal ahí fuera, entrena a tu',
           'PIKACHU y captura POKéMON!',
           'Tu siguiente objetivo:',
@@ -917,7 +933,13 @@ const SCRIPTS = {
               '...', 'Miguel.',
               'Un nombre que no habías', 'oído antes.',
               'O quizás sí.', 'En sueños, quizás.',
-            ]);
+              '...', 'Entre las páginas cae algo.',
+              'Una llave vieja y oxidada.',
+              '¡' + Game.playerName + ' recibió\nla LLAVE VIEJA!',
+            ], () => {
+              Game.bag.CERULEANKEY = 1;
+              AudioFX.confirm();
+            });
           });
         });
       });
@@ -928,6 +950,62 @@ const SCRIPTS = {
         '...', 'Cierras la estantería.',
       ]);
     }
+  },
+
+  neighborBookshelf() {
+    if (Game.flags.neighborRead) {
+      Game.say(['Dibujos de niños.', 'Todos firmados:', '"MIGUEL."']); return;
+    }
+    Game.flags.neighborRead = true;
+    Horror.startVision(14);
+    AudioFX.sting();
+    Game.say([
+      'Una estantería llena de dibujos.',
+      'Todos a lápiz, todos de POKéMON.',
+      'PIKACHU. BULBASAUR. CHARMANDER.',
+      'La firma en cada uno:', '"MIGUEL. 8 años."',
+      '...', 'En la última hoja hay algo diferente.',
+      'No es un POKéMON.',
+      'Es una cama. Con alguien dentro.',
+      'Cables. Una máquina al lado.',
+      'Y debajo, en letras grandes y torcidas:',
+      '"QUIERO SALIR."',
+      '...', 'Dejas el dibujo donde estaba.',
+    ], () => {
+      Horror.endVision();
+      Game.say([
+        'La habitación huele a plastilina', 'y colonia barata.',
+        '...', 'A algo que ya no existe aquí.',
+      ]);
+    });
+  },
+
+  ceruleanHoleSign() {
+    Game.say([
+      'En el centro de la habitación',
+      'hay un agujero en el suelo.',
+      'Las tablas están rotas hacia adentro.',
+      'Como si alguien hubiera bajado.', '...', 'Hay una cuerda atada a un hierro.',
+      '¿Bajas?',
+    ], () => {
+      Game.choose('¿BAJAS?', ['SÍ', 'NO'], i => {
+        if (i === 1) { Game.say(['Te alejas del agujero.', '...', 'Sigue ahí. Esperando.']); return; }
+        Horror.startVision(9999);
+        Game.flags.inSewers = true;
+        AudioFX.droneStart();
+        Game.say([
+          '...', 'Bajas.',
+          'Huele a humedad y a cerrado.',
+          'Las paredes son de cemento.',
+          'Hay tuberías por encima.',
+          'Y al fondo, una luz parpadeante.',
+          '...', 'Esto no es una alcantarilla.',
+          'Es el subsuelo del hospital.',
+        ], () => {
+          Game.warpTo({ to: 'sewers_a', x: 6.5, y: 2.5, ang: Math.PI / 2 });
+        });
+      });
+    });
   },
 
   rivalRoute4() {

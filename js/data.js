@@ -1018,8 +1018,10 @@ const ITEMS = {
   POTION:   { name: 'POCIÓN',      price: 300, desc: 'Restaura 20 PS.', heal: 20 },
   SUPERPOT: { name: 'SÚPER POCIÓN', price: 700, desc: 'Restaura 50 PS.', heal: 50 },
   PARCEL:   { name: 'PAQUETE OAK', price: 0,   desc: 'Encargo para el PROF. OAK.', key: true },
-  BADGE1:   { name: 'MEDALLA ROCA',    price: 0, desc: 'Medalla del Gimnasio de Pewter.', key: true },
-  BADGE2:   { name: 'MEDALLA CASCADA', price: 0, desc: 'Medalla del Gimnasio de Cerulean.', key: true },
+  BADGE1:     { name: 'MEDALLA ROCA',    price: 0, desc: 'Medalla del Gimnasio de Pewter.', key: true },
+  BADGE2:     { name: 'MEDALLA CASCADA', price: 0, desc: 'Medalla del Gimnasio de Cerulean.', key: true },
+  PALLETKEY:  { name: 'LLAVE CASA',  price: 0, desc: 'Llave de la casa del Dr. Álvarez en Pueblo Paleta.', key: true },
+  CERULEANKEY:{ name: 'LLAVE VIEJA', price: 0, desc: 'Una llave oxidada. Abre algo en Ciudad Azulona.', key: true },
 };
 
 // ---- Fórmulas ----

@@ -35,6 +35,8 @@ const VISION_NAMES = {
   sewers_a: 'SUBSUELO - A',
   sewers_b: 'SUBSUELO - B',
   sewers_exit: 'SALIDA DE EMERGENCIA',
+  palletneighbor: 'HABITACIÓN 7',
+  cerulean_house: 'DESPACHO DEL DR. BRICE',
 };
 
 const VISION_NARRATIONS = {
