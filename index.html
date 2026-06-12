@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>POKÉMON AMARILLO FP — Demake fan en primera persona</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:none;}
+  html,body{margin:0;padding:0;background:#0f1a0f;height:100%;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;flex-direction:column;
+    font-family:monospace;color:#9bbc0f;}
+
+  #screen{image-rendering:pixelated;image-rendering:crisp-edges;
+    width:min(96vw,calc(92vh*10/9));aspect-ratio:10/9;
+    border:8px solid #303830;border-radius:6px;background:#9bbc0f;
+    box-shadow:0 0 40px #000;flex-shrink:0;}
+
+  #hint{margin-top:6px;font-size:12px;opacity:.6;text-align:center;}
+
+  /* ---- Controles táctiles ---- */
+  #controls{
+    display:none;
+    width:100%;max-width:500px;
+    padding:8px 12px;
+    flex-shrink:0;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+  }
+
+  /* D-pad izquierdo */
+  #dpad{
+    position:relative;
+    width:120px;height:120px;
+    flex-shrink:0;
+  }
+  .dp{
+    position:absolute;
+    background:#1a2e1a;border:2px solid #304830;border-radius:6px;
+    color:#9bbc0f;font-size:18px;line-height:1;
+    display:flex;align-items:center;justify-content:center;
+    user-select:none;cursor:pointer;
+    transition:background .08s;
+  }
+  .dp:active,.dp.pressed{background:#304830;}
+  #dp-up   {top:0;    left:40px; width:40px;height:40px;}
+  #dp-down {bottom:0; left:40px; width:40px;height:40px;}
+  #dp-left {top:40px; left:0;    width:40px;height:40px;}
+  #dp-right{top:40px; right:0;   width:40px;height:40px;}
+  #dp-mid  {top:40px; left:40px; width:40px;height:40px;background:#141e14;border-color:#202820;}
+
+  /* Botones acción derecha */
+  #actions{
+    display:flex;flex-direction:column;align-items:flex-end;gap:6px;
+    flex-shrink:0;
+  }
+  #actions-row{display:flex;gap:8px;}
+  .btn{
+    background:#1a2e1a;border:2px solid #304830;border-radius:50%;
+    color:#9bbc0f;font-size:12px;font-family:monospace;font-weight:bold;
+    width:48px;height:48px;
+    display:flex;align-items:center;justify-content:center;
+    user-select:none;cursor:pointer;
+    transition:background .08s;
+  }
+  .btn:active,.btn.pressed{background:#304830;}
+  .btn.wide{border-radius:24px;width:72px;padding:0 8px;}
+
+  /* Botones extra (mapa, lateral) */
+  #extras{
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    flex-shrink:0;
+  }
+  #extras-row{display:flex;gap:6px;}
+  .btn-sm{
+    background:#141e14;border:2px solid #243024;border-radius:4px;
+    color:#8bac0f;font-size:10px;font-family:monospace;
+    width:36px;height:28px;
+    display:flex;align-items:center;justify-content:center;
+    user-select:none;cursor:pointer;
+    transition:background .08s;
+  }
+  .btn-sm:active,.btn-sm.pressed{background:#243024;}
+
+  /* En móvil mostramos controles, ocultamos hint de teclado */
+  @media (pointer:coarse){
+    #controls{display:flex;}
+    #hint{display:none;}
+    /* Móvil: reservar ~160px para el D-pad */
+    #screen{width:min(96vw,calc((100vh - 160px)*10/9));}
+  }
+</style>
+</head>
+<body>
+<canvas id="screen" width="480" height="432"></canvas>
+<div id="hint">W/S moverse · A/D girar · Q/E lateral · Z/Espacio aceptar · X/Esc menú · M mapa · clic = ratón</div>
+
+<div id="controls">
+  <!-- D-pad -->
+  <div id="dpad">
+    <div class="dp" id="dp-up"    data-key="w">▲</div>
+    <div class="dp" id="dp-left"  data-key="a">◀</div>
+    <div class="dp" id="dp-mid"></div>
+    <div class="dp" id="dp-right" data-key="d">▶</div>
+    <div class="dp" id="dp-down"  data-key="s">▼</div>
+  </div>
+
+  <!-- Extra: lateral + mapa -->
+  <div id="extras">
+    <div id="extras-row">
+      <div class="btn-sm" data-key="q">Q</div>
+      <div class="btn-sm" data-key="e">E</div>
+    </div>
+    <div class="btn-sm" data-key="m">MAP</div>
+  </div>
+
+  <!-- Botones A/B/Start -->
+  <div id="actions">
+    <div id="actions-row">
+      <div class="btn" data-key="x" title="Menú/Cancelar">B</div>
+      <div class="btn" data-key="z" title="Aceptar">A</div>
+    </div>
+    <div class="btn wide" data-key="enter" title="Pausa/Menú">START</div>
+  </div>
+</div>
+
+<script src="js/audio.js"></script>
+<script src="js/data.js"></script>
+<script src="js/maps.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/battle.js"></script>
+<script src="js/horror.js"></script>
+<script src="js/main.js"></script>
+<script>
+// ---- Controles táctiles ----
+// Cada botón simula keydown/keyup sobre el key indicado en data-key.
+// Los botones del D-pad soportan pulsación continua (hold) para moverse.
+
+const HOLD_KEYS = new Set(['w','a','s','d','q','e']); // teclas de movimiento = hold
+
+function fireKey(key, down) {
+  const type = down ? 'keydown' : 'keyup';
+  const ev = new KeyboardEvent(type, {
+    key, bubbles: true, cancelable: true, repeat: false,
+  });
+  window.dispatchEvent(ev);
+}
+
+function attachBtn(el) {
+  const key = el.dataset.key;
+  if (!key) return;
+  const hold = HOLD_KEYS.has(key);
+
+  function start(e) {
+    e.preventDefault();
+    AudioFX.init();
+    el.classList.add('pressed');
+    fireKey(key, true);
+  }
+  function end(e) {
+    e.preventDefault();
+    el.classList.remove('pressed');
+    fireKey(key, false);
+  }
+
+  el.addEventListener('touchstart', start, { passive: false });
+  el.addEventListener('touchend',   end,   { passive: false });
+  el.addEventListener('touchcancel',end,   { passive: false });
+
+  // Mouse fallback (pruebas en PC con DevTools)
+  el.addEventListener('mousedown', start);
+  el.addEventListener('mouseup',   end);
+  el.addEventListener('mouseleave',end);
+}
+
+document.querySelectorAll('[data-key]').forEach(attachBtn);
+
+// Swipe horizontal en canvas para girar cámara (alternativa al D-pad izquierda/derecha)
+(function() {
+  let tx0 = null;
+  const canvas = document.getElementById('screen');
+  canvas.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) tx0 = e.touches[0].clientX;
+  }, { passive: true });
+  canvas.addEventListener('touchmove', e => {
+    if (tx0 === null || e.touches.length !== 1) return;
+    const dx = e.touches[0].clientX - tx0;
+    if (Math.abs(dx) > 12) {
+      fireKey(dx > 0 ? 'd' : 'a', true);
+      tx0 = e.touches[0].clientX;
+    }
+  }, { passive: true });
+  canvas.addEventListener('touchend', e => {
+    fireKey('a', false); fireKey('d', false);
+    tx0 = null;
+  }, { passive: true });
+})();
+</script>
+</body>
+</html>
