@@ -198,6 +198,7 @@ const Battle = {
         pre.push({ t: '¡' + u.name + ' usó\n' + mv.name + '!' });
         const hit = Math.random() < (mv.acc / 100) * stageMult(stU.acc);
         if (!hit) {
+          pre.push({ f: () => AudioFX.miss() });
           pre.push({ t: '¡Pero falló!' });
           this.steps.unshift(...pre); return;
         }
@@ -210,7 +211,7 @@ const Battle = {
           }
           if (lastEff === 0) pre.push({ t: 'No afecta a\n' + t.name + '...' });
           else {
-            pre.push({ f: () => { AudioFX.hit(); t.hp = Math.max(0, t.hp - total); } });
+            pre.push({ f: () => { AudioFX.moveHit(moveKey, lastCrit, lastEff); t.hp = Math.max(0, t.hp - total); } });
             if (lastCrit) pre.push({ t: '¡Golpe crítico!' });
             if (nHits > 1) pre.push({ t: '¡Golpeó ' + nHits + ' veces!' });
             if (lastEff > 1) pre.push({ t: '¡Es muy eficaz!' });
@@ -244,6 +245,7 @@ const Battle = {
   applyStatus(t, status, pre, silent) {
     if (t.status) { if (!silent) pre.push({ t: '¡Pero falló!' }); return; }
     t.status = status;
+    pre.push({ f: () => AudioFX.statusSound(status) });
     pre.push({ t: '¡' + t.name + (status === 'PAR' ? ' está\nparalizado!' : ' fue\nenvenenado!') });
   },
 

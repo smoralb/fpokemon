@@ -78,6 +78,59 @@ const AudioFX = {
   },
   // Reinicia música tras batalla
   resumeMusic(map) { if (typeof Music !== 'undefined') Music.playForMap(map); },
+  moveHit(moveKey, crit, eff) {
+    if (!this.ctx) return;
+    const mv = (typeof MOVES !== 'undefined' && MOVES[moveKey]) || {};
+    const type = mv.type || 'normal';
+    if (eff === 0) return; // no afecta — sin sonido de impacto
+    const vol = crit ? 0.13 : 0.09;
+    switch (type) {
+      case 'electric':
+        this.tone(880, 0.05, 0, vol);
+        this.tone(1200, 0.04, 0.04, vol * 0.8);
+        this.tone(660, 0.06, 0.08, vol * 0.6);
+        break;
+      case 'water':
+        this.tone(300, 0.12, 0, vol, 'sine');
+        this.tone(200, 0.14, 0.03, vol * 0.7, 'sine');
+        break;
+      case 'fire':
+        this.sweep(600, 200, 0.15, vol, 'sawtooth');
+        this.tone(400, 0.1, 0.05, vol * 0.6, 'sawtooth');
+        break;
+      case 'rock': case 'ground':
+        this.tone(100, 0.15, 0, vol, 'square');
+        this.tone(80, 0.18, 0.04, vol * 0.8, 'square');
+        break;
+      case 'poison': case 'bug':
+        this.tone(500, 0.06, 0, vol, 'square');
+        this.tone(450, 0.08, 0.05, vol * 0.7, 'square');
+        this.tone(400, 0.07, 0.1, vol * 0.5, 'square');
+        break;
+      case 'flying':
+        this.sweep(500, 900, 0.1, vol, 'sine');
+        this.sweep(900, 400, 0.1, vol * 0.7, 'sine', 0.1);
+        break;
+      case 'psychic':
+        this.sweep(1000, 400, 0.2, vol, 'sine');
+        this.tone(800, 0.15, 0.05, vol * 0.6, 'sine');
+        break;
+      case 'ice':
+        this.tone(1200, 0.04, 0, vol * 0.5);
+        this.tone(1000, 0.06, 0.03, vol * 0.6);
+        this.tone(800, 0.08, 0.07, vol * 0.5);
+        break;
+      default: // normal, fighting, ghost, dragon
+        this.tone(200, 0.1, 0, vol, 'sawtooth');
+        this.tone(150, 0.12, 0.05, vol * 0.75, 'sawtooth');
+    }
+    if (crit) { this.tone(1400, 0.04, 0.0, 0.07); this.tone(1800, 0.03, 0.03, 0.05); }
+  },
+  miss() { this.sweep(400, 150, 0.15, 0.05, 'sine'); },
+  statusSound(status) {
+    if (status === 'PAR') { this.tone(600, 0.04, 0, 0.07); this.tone(500, 0.05, 0.04, 0.06); this.tone(400, 0.04, 0.08, 0.05); }
+    else if (status === 'PSN') { this.tone(250, 0.15, 0, 0.06, 'sine'); this.tone(200, 0.15, 0.1, 0.05, 'sine'); }
+  },
   drone: null,
   droneStart() {
     if (!this.ctx || this.drone) return;
