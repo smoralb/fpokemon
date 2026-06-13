@@ -23,9 +23,10 @@ const Battle = {
     this.sendPlayerMon();
   },
 
-  startTrainer(name, party, prize, onWin) {
+  startTrainer(name, party, prize, onWin, onLose) {
     this.common(party, false);
-    this.trainerName = name; this.prize = prize; this.onWin = onWin || null;
+    this.trainerName = name; this.prize = prize;
+    this.onWin = onWin || null; this.onLose = onLose || null;
     this.steps.push({ t: '¡' + name + ' quiere luchar!' });
     this.steps.push({ t: '¡' + name + ' sacó a\n' + this.em().name + '!' });
     this.sendPlayerMon();
@@ -37,6 +38,8 @@ const Battle = {
     this.playerIdx = Game.party.findIndex(m => m.hp > 0);
     this.steps = []; this.text = null; this.menu = null; this.sel = 0;
     this.outcome = null; this.prize = 0;
+    // Limpia callbacks de cualquier combate anterior (evita diálogos colgados).
+    this.onWin = null; this.onLose = null;
     this.resetStages();
     AudioFX.battleStart();
     if (typeof Music !== 'undefined') Music.play('battle');

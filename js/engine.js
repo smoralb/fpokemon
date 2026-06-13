@@ -358,6 +358,13 @@ function genTextures() {
   });
   // Mostrador
   WALL_TEX['K'] = mk((x, y) => (y === 3 ? 3 : y < 3 ? 0 : hash(x, y) < 3 ? 2 : 1));
+  // Escalera (integrada en la pared): escalones + baranda lateral
+  WALL_TEX['U'] = mk((x, y) => {
+    if (x < 2 || x > 13) return 3;     // barandas laterales
+    if (y % 4 === 0) return 3;          // contrahuella (borde oscuro del escalón)
+    if (y % 4 === 1) return 1;          // huella (parte clara)
+    return 2;                           // sombra del escalón
+  });
 
   // Suelos
   FLOOR_TEX['.'] = mk((x, y) => (hash(x, y) < 3 ? 0 : hash(x, y) > 19 ? 2 : 1));
@@ -414,6 +421,7 @@ function genTextures() {
     return x % 4 < 2 ? 2 : 3;
   });
   WALL_TEX_H['K'] = mk((x, y) => (y === 3 ? 3 : y < 3 ? 1 : hash(x, y) < 6 ? 3 : 2));
+  WALL_TEX_H['U'] = mk((x, y) => (x < 2 || x > 13 ? 3 : y % 4 === 0 ? 3 : hash(x, y) < 8 ? 3 : 2));
 
   // Suelos de la realidad
   FLOOR_TEX_H['.'] = mk((x, y) => (hash(x, y) < 3 ? 3 : hash(x, y) < 14 ? 2 : 1)); // hormigón húmedo

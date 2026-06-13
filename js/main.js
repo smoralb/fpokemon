@@ -70,22 +70,9 @@ const Game = {
   visibleNpcs() {
     const list = MAPS[this.map].npcs.filter(n => !n.cond || n.cond(this.flags));
     if (typeof Horror !== 'undefined' && Horror.npc) list.push(Horror.npc);
-    if (this.flags.hasPikachu && this.state === 'world') {
-      const ox = Math.cos(this.ang + Math.PI / 2) * 0.65;
-      const oy = Math.sin(this.ang + Math.PI / 2) * 0.65;
-      list.push({ x: this.x + ox, y: this.y + oy, sprite: 'PIKACHU', _isPikachu: true, _decor: true });
-    }
-    // Puerta de salida: en interiores, dibuja una puerta (como la exterior) en
-    // las alfombras de salida que llevan a un mapa exterior. Decorativa, no bloquea.
-    const cur = MAPS[this.map];
-    if (cur && !cur.outdoor && cur.warps) {
-      for (const key in cur.warps) {
-        const w = cur.warps[key];
-        if (w.to && MAPS[w.to] && MAPS[w.to].outdoor) {
-          const [wx, wy] = key.split(',').map(Number);
-          list.push({ x: wx + 0.5, y: wy + 0.5, sprite: 'DOOR', _decor: true });
-        }
-      }
+    if (this.flags.hasPikachu && this.follow) {
+      // Pikachu te sigue: posición mundial rezagada, visible desde cualquier ángulo.
+      list.push({ x: this.follow.x, y: this.follow.y, sprite: 'PIKACHU', _isPikachu: true, _decor: true });
     }
     // Grass sprites en hierba alta (decorativos, no colisionan)
     for (let dy = -4; dy <= 4; dy++) {
@@ -132,8 +119,8 @@ const Game = {
     this.party = []; this.box = [];
     this.bag = { POKEBALL: 0, POTION: 0, SUPERPOT: 0, PARCEL: 0, BADGE1: 0, BADGE2: 0 };
     this.money = 3000; this.flags = {};
-    this.map = 'home'; this.x = 7.5; this.y = 4.5; this.ang = Math.PI;
-    this.respawn = { map: 'home', x: 7.5, y: 4.5, ang: Math.PI };
+    this.map = 'home'; this.x = 5.5; this.y = 4.5; this.ang = Math.PI;
+    this.respawn = { map: 'home', x: 5.5, y: 4.5, ang: Math.PI };
     this.state = 'world';
     Music.playForMap(this.map);
     const name = this.playerName || 'ROJO';
@@ -241,6 +228,17 @@ const Game = {
       this.checkFloorWarp();
       this.checkEncounter(Math.min(moved, 0.1));
     }
+    // Pikachu te sigue: posición mundial que persigue al jugador, rezagada.
+    if (this.flags.hasPikachu) {
+      if (!this.follow) this.follow = { x: this.x, y: this.y };
+      const fx = this.x - this.follow.x, fy = this.y - this.follow.y;
+      const d = Math.hypot(fx, fy);
+      if (d > 0.8) {
+        const step = Math.min(d - 0.8, 2.3 * dt);
+        this.follow.x += (fx / d) * step;
+        this.follow.y += (fy / d) * step;
+      }
+    }
   },
 
   blockedAt(x, y) {
@@ -261,7 +259,8 @@ const Game = {
     const nx = this.x + dx, ny = this.y + dy;
     const b = this.blockedAt(nx, ny);
     if (!b) { this.x = nx; this.y = ny; return; }
-    if (b.wall === 'D' && this.bumpCooldown <= 0) {
+    // Cualquier tile de pared con warp (puerta, escalera...) se activa al chocar.
+    if (b.wall && this.bumpCooldown <= 0 && MAPS[this.map].warps[b.tx + ',' + b.ty]) {
       this.bumpCooldown = 0.6;
       this.useDoor(b.tx, b.ty);
     }
@@ -270,6 +269,11 @@ const Game = {
   useDoor(tx, ty) {
     const w = MAPS[this.map].warps[tx + ',' + ty];
     if (!w) return;
+    // El rival te corta el paso al salir del laboratorio.
+    if (this.map === 'lab' && this.flags.hasPikachu && !this.flags.rivalBeaten) {
+      SCRIPTS.rivalStop();
+      return;
+    }
     if (w.locked) {
       if (w.keyItem && (this.bag[w.keyItem] || 0) > 0) {
         // llave en inventario: abrir
@@ -290,6 +294,7 @@ const Game = {
     this.prevMap = this.map;
     this.map = w.to; this.x = w.x; this.y = w.y;
     if (w.ang !== undefined) this.ang = w.ang;
+    if (this.flags.hasPikachu) this.follow = { x: w.x, y: w.y }; // Pikachu aparece contigo
     this.bumpCooldown = 0.4;
     if (from !== this.map) this._onMapEnter(this.map);
   },
@@ -327,12 +332,6 @@ const Game = {
       this.y += 0.8;
       AudioFX.bump();
       SCRIPTS.oakBlock();
-      return;
-    }
-    // El rival te corta el paso al salir del laboratorio
-    if (this.map === 'lab' && t === 'm' && this.flags.hasPikachu && !this.flags.rivalBeaten) {
-      this.y -= 0.8;
-      SCRIPTS.rivalStop();
       return;
     }
     if (this.bumpCooldown <= 0) {
@@ -383,7 +382,8 @@ const Game = {
       const tx = (this.x + Math.cos(this.ang) * dd) | 0;
       const ty = (this.y + Math.sin(this.ang) * dd) | 0;
       const t = tileAt(this.map, tx, ty);
-      if (t === 'D') { this.useDoor(tx, ty); return; }
+      // Cualquier tile de pared con warp delante (puerta/escalera) se activa.
+      if (isWallTile(t) && MAPS[this.map].warps[tx + ',' + ty]) { this.useDoor(tx, ty); return; }
       if (tl && tl[tx + ',' + ty]) {
         const e = tl[tx + ',' + ty];
         AudioFX.blip();
@@ -396,13 +396,14 @@ const Game = {
 
   endBattle(outcome) {
     this.state = 'world';
-    if (outcome === 'win' && Battle.onWin) { const f = Battle.onWin; Battle.onWin = null; f(); }
+    const onWin = Battle.onWin, onLose = Battle.onLose;
+    Battle.onWin = null; Battle.onLose = null; // limpiar siempre para no dejar colgados
+    if (outcome === 'win' && onWin) { onWin(); return; }
     if (outcome === 'lose') {
-      for (const m of this.party) {
-        m.hp = m.maxhp; m.status = null;
-        for (const mv of m.moves) mv.pp = mv.maxpp;
-      }
+      this.healParty();
       this.money = Math.floor(this.money / 2);
+      // Si el combate define una derrota propia (p.ej. el rival), úsala.
+      if (onLose) { onLose(); return; }
       this.map = this.respawn.map; this.x = this.respawn.x; this.y = this.respawn.y; this.ang = this.respawn.ang;
       this.say(['Corriste a un lugar seguro...',
         'Tus POKéMON fueron curados.']);
@@ -506,12 +507,21 @@ const SCRIPTS = {
 
   _rivalBattle() {
     Game.state = 'battle';
-    Battle.startTrainer('AZUL', [makeMon('EEVEE', 5)], 280, () => {
+    // EEVEE débil (nivel 3): ganar es casi seguro.
+    Battle.startTrainer('AZUL', [makeMon('EEVEE', 3)], 280, () => {
       Game.flags.rivalBeaten = true;
       Game.say(['AZUL: ¡Bah! Solo ha sido',
         'suerte. ¡Sigue así y verás!',
         'OAK: Je, je... AZUL siempre',
         'ha sido un mal perdedor.']);
+    }, () => {
+      // Derrota ante AZUL: vuelves con el PROF. OAK al laboratorio y lo reintentas.
+      Game.map = 'lab'; Game.x = 11.5; Game.y = 6.5; Game.ang = -Math.PI / 2;
+      Game.say(['AZUL: ¡Ja! ¿Eso es todo?',
+        'Vuelve cuando sepas luchar.',
+        'OAK: No te preocupes, ROJO.',
+        'Cura a tu PIKACHU e inténtalo',
+        'otra vez.']);
     });
   },
 
@@ -1237,7 +1247,7 @@ function navKeyOf(e) {
 window.addEventListener('keydown', e => {
   AudioFX.init();
   const k = e.key.toLowerCase();
-  if ([' ', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) e.preventDefault();
+  if ([' ', 'enter', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) e.preventDefault();
   Game.keys[k] = true;
   if (e.repeat) return;
   const nav = navKeyOf(e);
@@ -1565,7 +1575,7 @@ function drawTitle(ctx) {
   centerText(ctx, 'AMARILLO FP', 46, '12px gbfont');
   drawSpriteCentered(ctx, 'PIKACHU', 56, 56);
   centerText(ctx, 'Demake fan en 1ª persona', 130, '8px gbfont');
-  if (Math.floor(Game.time * 2) % 2) centerText(ctx, '- PULSA Z -', 140, '8px gbfont');
+  if (Math.floor(Game.time * 2) % 2) centerText(ctx, '- PULSA ENTER -', 140, '8px gbfont');
 }
 
 function drawStartMenu(ctx) {
@@ -1583,11 +1593,11 @@ function drawNamingIntro(ctx) {
   ctx.fillRect(0, 0, SCR_W, SCR_H);
   // Oak sprite centrado en la mitad superior
   drawSprite(ctx, 'OAK', 56, 8, 3, false);
-  // Caja de diálogo
-  drawBox(ctx, 0, 100, 160, 44);
+  // Caja de diálogo (más alta para que no se corten las líneas)
+  drawBox(ctx, 0, 88, 160, 56);
   const page = NAMING_INTRO_PAGES[Game.namingIntroIdx] || [];
-  page.forEach((l, i) => { if (l) uiText(ctx, l, 6, 113 + i * 11); });
-  if (Math.floor(Game.time * 2) % 2) uiText(ctx, '▼', 148, 140);
+  page.forEach((l, i) => { if (l) uiText(ctx, l, 8, 103 + i * 13); });
+  if (Math.floor(Game.time * 2) % 2) uiText(ctx, '▼', 148, 136);
 }
 
 function drawNaming(ctx) {
