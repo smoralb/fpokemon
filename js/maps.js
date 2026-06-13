@@ -19,9 +19,9 @@ const MAPS = {
       'T....::....::....T',
       'T................T',
       'T................T',
+      'T....BBBDBBBB....T',
       'T....BBBBBBBB....T',
       'T....BBBBBBBB....T',
-      'T....BBDBBBBB....T',
       'T....BBBBBBBB....T',
       'T...::.....::....T',
       'TTTTTTTTTTTTTTTTTT',
@@ -31,7 +31,7 @@ const MAPS = {
       '9,0': { to: 'route1', x: 6.5, y: 21.5, ang: -Math.PI / 2 },
       '3,3': { to: 'home', x: 4.5, y: 4.2, ang: -Math.PI / 2 },
       '13,3': { to: 'palletneighbor', x: 4.5, y: 6.5, ang: -Math.PI / 2, locked: 'Está cerrado con llave...', keyItem: 'PALLETKEY' },
-      '8,10': { to: 'lab', x: 11.5, y: 6.5, ang: -Math.PI / 2 },
+      '8,8': { to: 'lab', x: 11.5, y: 6.5, ang: -Math.PI / 2 },
     },
     encounters: null,
     npcs: [
@@ -150,7 +150,7 @@ const MAPS = {
     warps: { '6,7': { to: 'pallet', x: 3.5, y: 4.4, ang: Math.PI / 2 } },
     encounters: null,
     npcs: [
-      { x: 2.5, y: 2.5, sprite: 'MOM', script: 'mom' },
+      { x: 3.5, y: 4.5, sprite: 'MOM', script: 'mom' },
       { x: 10.5, y: 2.5, sprite: 'TV', script: 'homeTV' },
       { x: 7.5, y: 3.5, sprite: 'TABLE', script: 'homeTable' },
       { x: 11.5, y: 5.5, sprite: 'PLANT', lines: ['Una planta en una maceta.', 'Sus hojas están un poco amarillas.'],
@@ -172,7 +172,7 @@ const MAPS = {
       'X.....................X',
       'XXXXXXXXXXmXXXXXXXXXXX',
     ],
-    warps: { '10,8': { to: 'pallet', x: 8.5, y: 11.4, ang: Math.PI / 2 } },
+    warps: { '10,8': { to: 'pallet', x: 8.5, y: 7.4, ang: -Math.PI / 2 } },
     encounters: null,
     npcs: [
       { x: 11.5, y: 1.7, sprite: 'OAK', script: 'oakLab' },

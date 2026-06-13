@@ -68,10 +68,10 @@ const Engine = {
         c = y > H2 - 10 ? 1 : 0;
         buf.fill(c, y * SCR_W, (y + 1) * SCR_W);
       } else {
-        // Techo interior: baldosas con líneas de cuadrícula
+        // Techo interior: liso con puntos dispersos (gotelé) para notar relieve
         for (let x = 0; x < SCR_W; x++) {
-          const tx = x % 16, ty = y % 16;
-          c = (tx === 0 || ty === 0) ? 2 : (tx === 8 || ty === 8) ? 1 : 0;
+          const h = (x * 31 + y * 71 + x * y * 13) & 255;
+          c = h < 6 ? 1 : h === 200 ? 2 : 0;
           buf[y * SCR_W + x] = c;
         }
       }
@@ -135,6 +135,28 @@ const Engine = {
         texPos += step;
         let c = texArr[texY * 16 + texX] + shade;
         buf[y * SCR_W + x] = c > 3 ? 3 : c;
+      }
+
+      // Tejado a dos aguas por encima del muro de los edificios.
+      // La altura varía con la posición a lo largo de la fachada (mundo),
+      // formando cumbreras y aleros -> silueta diagonal continua.
+      if (tile === 'B' && y0 > 0) {
+        const fpos = side === 0 ? (py + dist * rdy) : (px + dist * rdx);
+        const u = ((fpos % 2) + 2) % 2;        // 0..2 por cada "casa"
+        const tri = 1 - Math.abs(u - 1);        // 1 en la cumbrera, 0 en el alero
+        const roofH = Math.max(3, (lineH * (0.18 + 0.34 * tri)) | 0);
+        const top = Math.max(0, y0 - roofH);
+        const eave = Math.min(SCR_H - 1, y0 - 1);
+        const sh = this.shadeFor(dist) + (side === 1 ? 1 : 0);
+        for (let y = top; y <= eave; y++) {
+          const ti = eave - y;                  // 0 alero, sube hacia la cumbrera
+          let c;
+          if (y === eave) c = 3;                // línea de alero
+          else if (ti % 3 === 0) c = 3;         // junta entre hiladas de tejas
+          else c = (ti % 3 === 1) ? 2 : 1;      // teja sombreada
+          c += sh;
+          buf[y * SCR_W + x] = c > 3 ? 3 : c;
+        }
       }
     }
 
@@ -232,10 +254,10 @@ function genTextures() {
     const h = hash(x, y);
     return h < 6 ? 3 : h < 13 ? 2 : 1;
   });
-  // Ladrillo claro de edificios
+  // Edificio: ladrillo claro (la pared entera; el tejado se dibuja aparte)
   WALL_TEX['B'] = mk((x, y) => {
-    if (y % 5 === 0) return 2;
-    const off = ((y / 5) | 0) % 2 ? 4 : 0;
+    if (y % 4 === 0) return 2;
+    const off = ((y / 4) | 0) % 2 ? 4 : 0;
     if ((x + off) % 8 === 0) return 2;
     return hash(x, y) < 2 ? 1 : 0;
   });
