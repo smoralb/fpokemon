@@ -137,25 +137,45 @@ const Engine = {
         buf[y * SCR_W + x] = c > 3 ? 3 : c;
       }
 
-      // Tejado a dos aguas por encima del muro de los edificios.
-      // La altura varía con la posición a lo largo de la fachada (mundo),
-      // formando cumbreras y aleros -> silueta diagonal continua.
-      if (tile === 'B' && y0 > 0) {
-        const fpos = side === 0 ? (py + dist * rdy) : (px + dist * rdx);
-        const u = ((fpos % 2) + 2) % 2;        // 0..2 por cada "casa"
-        const tri = 1 - Math.abs(u - 1);        // 1 en la cumbrera, 0 en el alero
-        const roofH = Math.max(3, (lineH * (0.18 + 0.34 * tri)) | 0);
-        const top = Math.max(0, y0 - roofH);
-        const eave = Math.min(SCR_H - 1, y0 - 1);
-        const sh = this.shadeFor(dist) + (side === 1 ? 1 : 0);
-        for (let y = top; y <= eave; y++) {
-          const ti = eave - y;                  // 0 alero, sube hacia la cumbrera
-          let c;
-          if (y === eave) c = 3;                // línea de alero
-          else if (ti % 3 === 0) c = 3;         // junta entre hiladas de tejas
-          else c = (ti % 3 === 1) ? 2 : 1;      // teja sombreada
-          c += sh;
-          buf[y * SCR_W + x] = c > 3 ? 3 : c;
+      // Tejado a cuatro aguas (hip roof) por encima del muro de los edificios.
+      // Se "castea" el tejado: marchamos el rayo sobre la planta del edificio y
+      // proyectamos la altura del faldón z = 0.5 + pitch*distAlBorde a pantalla,
+      // pintando el faldón cercano con textura de teja hasta la cumbrera.
+      if ((tile === 'B' || tile === 'D') && y0 > 0) {
+        const info = getBuildings(mapKey)[mapX + ',' + mapY];
+        if (info) {
+          const EYE_TOP = 0.5, factor = SCR_H, STEP = 0.03, COURSES = 3; // hiladas por tile
+          const tMax = dist + info.shortDim + 2 * ROOF_OVERHANG + 0.1;
+          let prevY = y0;                         // arranque = alto del muro en pantalla
+          let prevDb = Math.min(px + dist * rdx - info.ex0, info.ex1 - (px + dist * rdx),
+                                py + dist * rdy - info.ey0, info.ey1 - (py + dist * rdy));
+          let prevCourse = (prevDb * COURSES) | 0;
+          for (let t = dist + STEP; t < tMax; t += STEP) {
+            const wx = px + t * rdx, wy = py + t * rdy;
+            const d = Math.min(wx - info.ex0, info.ex1 - wx, wy - info.ey0, info.ey1 - wy);
+            if (d < 0) break;                     // salimos de la planta (con alero)
+            if (d < prevDb - 1e-3) break;         // pasada la cumbrera -> solo faldón cercano
+            const z = EYE_TOP + ROOF_PITCH * d;
+            const curY = (H2 - z * factor / t) | 0;
+            if (curY < prevY) {
+              const sh = this.shadeFor(t);
+              const course = (d * COURSES) | 0;
+              const seamRow = course !== prevCourse;  // costura de hilada en este tramo
+              const top = Math.max(0, curY);
+              for (let y = top; y < prevY; y++) {
+                let c;
+                if (y === prevY - 1) c = 3;                       // alero / junta inferior
+                else if (seamRow && y === top) c = 3;             // costura entre hiladas
+                else if ((x + course * 2) % 6 === 0) c = 3;       // junta vertical escalonada
+                else c = (course % 2 ? 1 : 2);                    // teja sombreada
+                c += sh;
+                buf[y * SCR_W + x] = c > 3 ? 3 : c;
+              }
+              prevY = curY;
+              prevCourse = course;
+            }
+            prevDb = d;
+          }
         }
       }
     }
@@ -177,15 +197,16 @@ const Engine = {
       const y0 = bottom - size, x0 = screenX - (size >> 1);
       const pix = SPRITE_PIX[n.sprite];
       if (!pix) continue;
+      const N = spriteDim(n.sprite);
       const shade = this.shadeFor(trY);
       for (let xs = 0; xs < size; xs++) {
         const x = x0 + xs;
         if (x < 0 || x >= SCR_W || trY >= this.zbuf[x]) continue;
-        const tx = (xs * 16 / size) | 0;
+        const tx = (xs * N / size) | 0;
         for (let ys = 0; ys < size; ys++) {
           const y = y0 + ys;
           if (y < 0 || y >= SCR_H) continue;
-          const ty = (ys * 16 / size) | 0;
+          const ty = (ys * N / size) | 0;
           const v = pix[ty][tx];
           if (v < 0) continue;
           let c = v + shade;
@@ -221,10 +242,59 @@ const Engine = {
     ctx.fillRect(ox + px * s - 1.5, oy + py * s - 1.5, 3, 3);
     ctx.fillRect(ox + (px + Math.cos(ang) * 0.8) * s - 1, oy + (py + Math.sin(ang) * 0.8) * s - 1, 2, 2);
     ctx.fillStyle = PAL[3];
-    ctx.font = '7px monospace';
+    ctx.font = '8px gbfont';
     ctx.fillText(map.name, ox, oy - 5);
   },
 };
+
+// Parámetros del tejado a cuatro aguas.
+const ROOF_PITCH = 0.6;     // pendiente media (altura por tile de distancia al borde)
+const ROOF_OVERHANG = 0.15; // alero: el tejado sobresale de la pared
+
+// Detecta cada bloque rectangular de edificio (tiles 'B') y guarda, por tile,
+// los bordes exteriores de la planta (extendidos por el alero). El tejado a cuatro
+// aguas se deriva luego como z = z_alero + pitch * distancia_al_borde_más_cercano.
+function getBuildings(mapKey) {
+  const m = MAPS[mapKey];
+  if (m._roof) return m._roof;
+  const g = m.grid, H = g.length;
+  const seen = {};
+  const box = {};
+  for (let y = 0; y < H; y++) {
+    const row = g[y];
+    for (let x = 0; x < row.length; x++) {
+      if (row[x] !== 'B' || seen[x + ',' + y]) continue;
+      // flood fill 4-conexo del bloque
+      const stack = [[x, y]], cells = [];
+      seen[x + ',' + y] = true;
+      let x0 = x, y0 = y, x1 = x, y1 = y;
+      while (stack.length) {
+        const [cx, cy] = stack.pop();
+        cells.push([cx, cy]);
+        if (cx < x0) x0 = cx; if (cx > x1) x1 = cx;
+        if (cy < y0) y0 = cy; if (cy > y1) y1 = cy;
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const nx = cx + dx, ny = cy + dy, k = nx + ',' + ny;
+          // El bloque incluye las puertas ('D') para que tengan tejado encima.
+          if (ny >= 0 && ny < H && nx >= 0 && nx < g[ny].length &&
+              (g[ny][nx] === 'B' || g[ny][nx] === 'D') && !seen[k]) {
+            seen[k] = true; stack.push([nx, ny]);
+          }
+        }
+      }
+      const wdt = x1 - x0 + 1, dpt = y1 - y0 + 1;
+      const info = {
+        // bordes exteriores de la planta, extendidos por el alero
+        ex0: x0 - ROOF_OVERHANG, ey0: y0 - ROOF_OVERHANG,
+        ex1: (x1 + 1) + ROOF_OVERHANG, ey1: (y1 + 1) + ROOF_OVERHANG,
+        shortDim: Math.min(wdt, dpt),
+      };
+      for (const [cx, cy] of cells) box[cx + ',' + cy] = info;
+    }
+  }
+  m._roof = box;
+  return box;
+}
 
 // ---- Texturas procedurales 16x16 ----
 const WALL_TEX = {};
@@ -365,10 +435,11 @@ const SPRITE_CANVAS = {};
 function spriteCanvas(key) {
   if (SPRITE_CANVAS[key]) return SPRITE_CANVAS[key];
   const c = document.createElement('canvas');
-  c.width = 16; c.height = 16;
+  const N = spriteDim(key);
+  c.width = N; c.height = N;
   const cx = c.getContext('2d');
   const pix = SPRITE_PIX[key];
-  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
     const v = pix[y][x];
     if (v < 0) continue;
     cx.fillStyle = PAL[v];
@@ -378,12 +449,21 @@ function spriteCanvas(key) {
   return c;
 }
 
+function spriteDim(key) {
+  return (typeof SPRITE_DIM !== 'undefined' && SPRITE_DIM[key]) || 16;
+}
+// Dibuja un sprite centrado horizontalmente con una altura objetivo en px.
+function drawSpriteCentered(ctx, key, desired, y) {
+  const dim = spriteDim(key);
+  drawSprite(ctx, key, (SCR_W - desired) / 2, y, desired / dim, false);
+}
+
 function drawSprite(ctx, key, x, y, scale, flip) {
   const c = spriteCanvas(key);
   ctx.save();
   ctx.imageSmoothingEnabled = false;
   if (flip) {
-    ctx.translate(x + 16 * scale, y);
+    ctx.translate(x + spriteDim(key) * scale, y);
     ctx.scale(-scale, scale);
   } else {
     ctx.translate(x, y);

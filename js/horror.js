@@ -355,7 +355,9 @@ const Horror = {
     this.updatePhase();
     if (this.vision > 0) {
       this.vision -= dt;
-      if (this.vision <= 0) this.endVision();
+      // Durante un asalto la estética se mantiene hasta cerrar el diálogo;
+      // el contador no la corta antes de tiempo.
+      if (this.vision <= 0 && !this.assaultActive) this.endVision();
     }
     if (Engine.glitchT > 0) Engine.glitchT -= dt;
 
@@ -419,6 +421,7 @@ const Horror = {
     const ay = Game.y + Math.sin(Game.ang) * 1.5;
     if (isWallTile(tileAt(Game.map, ax | 0, ay | 0))) return;
     this.npc = { x: ax, y: ay, sprite: q.sprite, temp: true };
+    this.assaultActive = true;
     AudioFX.sting();
     this.startVision(30);
     Engine.glitchT = 0.6;
@@ -430,10 +433,11 @@ const Horror = {
         // Final alternativo
         if (q.isFinal) {
           Game.flags.endingChoice = i === 0 ? 'wake' : 'stay';
+          this.assaultActive = false;
           this._triggerEnding(i);
           return;
         }
-        Game.say(q.replies[i], () => { this.npc = null; this.endVision(); });
+        Game.say(q.replies[i], () => { this.npc = null; this.assaultActive = false; this.endVision(); });
       });
     });
   },
@@ -522,18 +526,20 @@ const Horror = {
     const s = Game.flags.sanity || 0;
     if (s <= 0) return;
     ctx.fillStyle = PAL[3];
-    ctx.font = '6px monospace';
     // Dibuja 's' píxeles rotos en la esquina superior izquierda, casi ilegibles.
     for (let i = 0; i < s; i++) {
-      ctx.fillText('█', 2 + i * 4, 6 + (rnd(3) - 1));
+      ctx.fillRect(2 + i * 4, 2 + (rnd(3) - 1), 3, 4);
     }
   },
 
   draw(ctx) {
     this.drawSanityHint(ctx);
+    // Durante un asalto no se superpone el texto de visión del mapa
+    // (p.ej. "ALCANTARILLADO"): solo se ve el NPC y su pregunta.
+    if (this.assaultActive) return;
     if (this.active() && VISION_NAMES[Game.map] && rnd(10) < 8) {
       ctx.fillStyle = PAL[3];
-      ctx.font = '7px monospace';
+      ctx.font = '8px gbfont';
       ctx.fillText(VISION_NAMES[Game.map], 4 + rnd(2), 10 + rnd(2));
     }
     if (this.active() && this.phase >= 3) {
@@ -541,7 +547,7 @@ const Horror = {
       if (narr && narr.length > 0) {
         const idx = Math.floor(Game.time * 0.4) % narr.length;
         ctx.fillStyle = PAL[3];
-        ctx.font = '7px monospace';
+        ctx.font = '8px gbfont';
         ctx.fillText(narr[idx], 4, 20);
       }
     }

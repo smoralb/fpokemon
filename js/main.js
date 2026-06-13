@@ -8,7 +8,11 @@ function uiEnd(ctx) { ctx.setTransform(1, 0, 0, 1, 0, 0); }
 
 function uiText(ctx, s, x, y) {
   ctx.fillStyle = PAL[3];
-  ctx.font = '7px monospace';
+  // Las flechas de cursor/continuación se dibujan como triángulos (la fuente
+  // pixel no incluye esos glifos geométricos).
+  if (s === '►') { drawArrow(ctx, x + 1, y - 3, 'right'); return; }
+  if (s === '▼') { drawArrow(ctx, x, y - 5, 'down'); return; }
+  ctx.font = '8px gbfont';
   ctx.fillText(s, x, y);
 }
 function drawBox(ctx, x, y, w, h) {
@@ -69,15 +73,27 @@ const Game = {
     if (this.flags.hasPikachu && this.state === 'world') {
       const ox = Math.cos(this.ang + Math.PI / 2) * 0.65;
       const oy = Math.sin(this.ang + Math.PI / 2) * 0.65;
-      list.push({ x: this.x + ox, y: this.y + oy, sprite: 'PIKACHU', _isPikachu: true });
+      list.push({ x: this.x + ox, y: this.y + oy, sprite: 'PIKACHU', _isPikachu: true, _decor: true });
     }
-    // Grass sprites en hierba alta
+    // Puerta de salida: en interiores, dibuja una puerta (como la exterior) en
+    // las alfombras de salida que llevan a un mapa exterior. Decorativa, no bloquea.
+    const cur = MAPS[this.map];
+    if (cur && !cur.outdoor && cur.warps) {
+      for (const key in cur.warps) {
+        const w = cur.warps[key];
+        if (w.to && MAPS[w.to] && MAPS[w.to].outdoor) {
+          const [wx, wy] = key.split(',').map(Number);
+          list.push({ x: wx + 0.5, y: wy + 0.5, sprite: 'DOOR', _decor: true });
+        }
+      }
+    }
+    // Grass sprites en hierba alta (decorativos, no colisionan)
     for (let dy = -4; dy <= 4; dy++) {
       for (let dx = -4; dx <= 4; dx++) {
         const gx = (this.x | 0) + dx + 0.5;
         const gy = (this.y | 0) + dy + 0.5;
         if (tileAt(this.map, gx | 0, gy | 0) === ',') {
-          list.push({ x: gx, y: gy, sprite: 'GRASS' });
+          list.push({ x: gx, y: gy, sprite: 'GRASS', _decor: true });
         }
       }
     }
@@ -126,7 +142,13 @@ const Game = {
       'Está en su LABORATORIO,',
       'al sur del pueblo.',
       '(Las paredes vuelven a ser',
-      'verdes. Eso es bueno.)']);
+      'verdes. Eso es bueno.)',
+      ' ',
+      'CONSEJO: habla VARIAS veces',
+      'con la gente y los objetos.',
+      'Algunos diálogos esconden',
+      'secretos... y pueden hacerte',
+      'VER LA VERDAD.']);
   },
 
   save() {
@@ -228,6 +250,7 @@ const Game = {
       if (isWallTile(t)) return { wall: t, tx: (x + dx) | 0, ty: (y + dy) | 0 };
     }
     for (const n of this.visibleNpcs()) {
+      if (n._decor) continue; // hierba/pikachu: decorativos, no bloquean
       const rr = n.r || 0.5;
       if ((n.x - x) ** 2 + (n.y - y) ** 2 < rr * rr) return { npc: n };
     }
@@ -354,11 +377,20 @@ const Game = {
       else if (best.lines) this.say(Horror.twist(best));
       return;
     }
-    // Puerta delante
+    // Tile delante: puerta ('D') o estantería/mostrador interactuable (tileLines)
+    const tl = MAPS[this.map].tileLines;
     for (const dd of [0.7, 1.2]) {
       const tx = (this.x + Math.cos(this.ang) * dd) | 0;
       const ty = (this.y + Math.sin(this.ang) * dd) | 0;
-      if (tileAt(this.map, tx, ty) === 'D') { this.useDoor(tx, ty); return; }
+      const t = tileAt(this.map, tx, ty);
+      if (t === 'D') { this.useDoor(tx, ty); return; }
+      if (tl && tl[tx + ',' + ty]) {
+        const e = tl[tx + ',' + ty];
+        AudioFX.blip();
+        if (e.script) SCRIPTS[e.script]();
+        else if (e.lines) this.say(Horror.twist(e));
+        return;
+      }
     }
   },
 
@@ -1509,18 +1541,31 @@ function drawShop(ctx) {
   uiText(ctx, 'Tienes: ' + (Game.bag.POKEBALL | 0) + ' BALL, ' + (Game.bag.POTION | 0) + ' POCIÓN', 16, 112);
 }
 
+// Dibuja texto centrado horizontalmente en la pantalla (160 de ancho).
+function centerText(ctx, s, y, font) {
+  ctx.font = font;
+  ctx.fillStyle = PAL[3];
+  const w = ctx.measureText(s).width;
+  ctx.fillText(s, (SCR_W - w) / 2, y);
+}
+// Triángulo (flecha) dibujado a mano: dir 'right'|'down'.
+function drawArrow(ctx, x, y, dir) {
+  ctx.fillStyle = PAL[3];
+  ctx.beginPath();
+  if (dir === 'down') { ctx.moveTo(x, y); ctx.lineTo(x + 6, y); ctx.lineTo(x + 3, y + 4); }
+  else { ctx.moveTo(x, y - 3); ctx.lineTo(x, y + 3); ctx.lineTo(x + 4, y); }
+  ctx.closePath();
+  ctx.fill();
+}
+
 function drawTitle(ctx) {
   ctx.fillStyle = PAL[0];
   ctx.fillRect(0, 0, SCR_W, SCR_H);
-  ctx.fillStyle = PAL[3];
-  ctx.font = 'bold 16px monospace';
-  ctx.fillText('POKéMON', 36, 30);
-  ctx.font = 'bold 11px monospace';
-  ctx.fillText('AMARILLO FP', 40, 46);
-  drawSprite(ctx, 'PIKACHU', 48, 56, 4, false);
-  ctx.font = '7px monospace';
-  ctx.fillText('Demake fan en 1ª persona', 22, 130);
-  if (Math.floor(Game.time * 2) % 2) ctx.fillText('- PULSA Z -', 56, 140);
+  centerText(ctx, 'POKéMON', 30, '16px gbfont');
+  centerText(ctx, 'AMARILLO FP', 46, '12px gbfont');
+  drawSpriteCentered(ctx, 'PIKACHU', 56, 56);
+  centerText(ctx, 'Demake fan en 1ª persona', 130, '8px gbfont');
+  if (Math.floor(Game.time * 2) % 2) centerText(ctx, '- PULSA Z -', 140, '8px gbfont');
 }
 
 function drawStartMenu(ctx) {
@@ -1529,7 +1574,7 @@ function drawStartMenu(ctx) {
   const opts = ['CONTINUAR', 'NUEVA PARTIDA'];
   opts.forEach((o, i) => {
     uiText(ctx, o, 56, 74 + i * 12);
-    if (Game.titleSel === i) uiText(ctx, '►', 47, 74 + i * 12);
+    if (Game.titleSel === i) drawArrow(ctx, 48, 71 + i * 12, 'right');
   });
 }
 
@@ -1565,7 +1610,7 @@ function drawNaming(ctx) {
           ctx.fillStyle = PAL[3];
           ctx.fillRect(x - 1, y - 8, ch.length > 1 ? 19 : 10, 11);
           ctx.fillStyle = PAL[0];
-          ctx.font = '7px monospace';
+          ctx.font = '8px gbfont';
           ctx.fillText(ch, x, y);
           ctx.fillStyle = PAL[3];
         } else {
@@ -1613,7 +1658,7 @@ function tick(now) {
     // Indicador de hierba
     if (tileAt(G.map, G.x | 0, G.y | 0) === ',' && !Horror.active()) {
       ctx.fillStyle = PAL[3];
-      ctx.font = '7px monospace';
+      ctx.font = '8px gbfont';
       ctx.fillText('~hierba alta~', 54, 10);
     }
     if (G.state === 'dialog') drawDialog(ctx);
@@ -1634,4 +1679,13 @@ function tick(now) {
 }
 
 Engine.init(document.getElementById('screen'));
-requestAnimationFrame(tick);
+// Esperar a que la fuente pixel cargue para que las tildes/símbolos se rendericen
+// bien desde el primer frame (con tope por si falla).
+if (document.fonts && document.fonts.load) {
+  Promise.race([
+    document.fonts.load('16px gbfont').then(() => document.fonts.ready),
+    new Promise(r => setTimeout(r, 1500)),
+  ]).then(() => requestAnimationFrame(tick));
+} else {
+  requestAnimationFrame(tick);
+}

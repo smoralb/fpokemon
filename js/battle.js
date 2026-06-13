@@ -397,15 +397,17 @@ const Battle = {
     const e = this.em(), p = this.pm();
     if (!e || !p) return;
 
-    // Enemigo
-    drawSprite(ctx, Horror.spriteFor(e.id), 104, 6, 3, false);
+    // Enemigo (escala según el tamaño del sprite para que mida ~48px)
+    const esp = Horror.spriteFor(e.id);
+    drawSprite(ctx, esp, 104, 6, 48 / spriteDim(esp), false);
     drawBox(ctx, 2, 2, 88, 28);
     uiText(ctx, e.name, 6, 12);
     uiText(ctx, 'N.' + e.level + (e.status ? ' ' + e.status : ''), 6, 20);
     drawHPBar(ctx, 8, 24, 70, e.hp, e.maxhp);
 
-    // Jugador
-    drawSprite(ctx, Horror.spriteFor(p.id), 12, 50, 3, true);
+    // Jugador (escala según el tamaño del sprite para que mida ~48px)
+    const psp = Horror.spriteFor(p.id);
+    drawSprite(ctx, psp, 12, 50, 48 / spriteDim(psp), true);
     drawBox(ctx, 66, 62, 92, 34);
     uiText(ctx, p.name, 70, 72);
     uiText(ctx, 'N.' + p.level + (p.status ? ' ' + p.status : ''), 70, 80);
